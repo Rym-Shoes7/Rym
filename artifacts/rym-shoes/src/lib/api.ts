@@ -1,8 +1,7 @@
 import {
   collection, doc, getDocs, getDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy,
 } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from './firebase';
+import { db } from './firebase';
 
 export interface Product {
   id: string;
@@ -42,10 +41,19 @@ export function formatPrice(price: string | number): string {
 }
 
 async function uploadImage(file: File): Promise<string> {
-  const name = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-  const fileRef = ref(storage, `products/${name}`);
-  await uploadBytes(fileRef, file);
-  return getDownloadURL(fileRef);
+  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME as string;
+  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET as string;
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', uploadPreset);
+  formData.append('folder', 'rym-shoes/products');
+  const res = await fetch(
+    `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+    { method: 'POST', body: formData },
+  );
+  if (!res.ok) throw new Error('Image upload failed');
+  const data = (await res.json()) as { secure_url: string };
+  return data.secure_url;
 }
 
 export async function getProducts(category = 'all'): Promise<Product[]> {
