@@ -1,4 +1,5 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
+import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import HomePage from "@/pages/HomePage";
@@ -13,6 +14,7 @@ import NewProductPage from "@/pages/admin/NewProductPage";
 import EditProductPage from "@/pages/admin/EditProductPage";
 import { CartProvider } from "@/context/CartContext";
 import { LanguageProvider, useLang } from "@/context/LanguageContext";
+import VideoLoader from "@/components/VideoLoader";
 
 function StorefrontLayout({ children }: { children: React.ReactNode }) {
   const { isRTL } = useLang();
@@ -43,9 +45,17 @@ function AppRoutes() {
 }
 
 export default function App() {
+  const [loaded, setLoaded] = useState(() => sessionStorage.getItem("rym_intro_done") === "1");
+
+  function handleDone() {
+    sessionStorage.setItem("rym_intro_done", "1");
+    setLoaded(true);
+  }
+
   return (
     <LanguageProvider>
       <CartProvider>
+        {!loaded && <VideoLoader onDone={handleDone} />}
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <AppRoutes />
         </WouterRouter>
