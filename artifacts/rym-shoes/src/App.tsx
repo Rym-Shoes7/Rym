@@ -45,10 +45,10 @@ function AppRoutes() {
 }
 
 export default function App() {
-  const [loaded, setLoaded] = useState(() => sessionStorage.getItem("rym_intro_done") === "1");
+  const [loaded, setLoaded] = useState(() => sessionStorage.getItem("rym_intro_v2") === "1");
 
   function handleDone() {
-    sessionStorage.setItem("rym_intro_done", "1");
+    sessionStorage.setItem("rym_intro_v2", "1");
     setLoaded(true);
   }
 
