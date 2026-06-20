@@ -1,42 +1,55 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/not-found";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import HomePage from "@/pages/HomePage";
+import ShopPage from "@/pages/ShopPage";
+import ProductPage from "@/pages/ProductPage";
+import CartPage from "@/pages/CartPage";
+import CheckoutPage from "@/pages/CheckoutPage";
+import LoginPage from "@/pages/LoginPage";
+import AdminLoginPage from "@/pages/admin/AdminLoginPage";
+import AdminDashboardPage from "@/pages/admin/AdminDashboardPage";
+import NewProductPage from "@/pages/admin/NewProductPage";
+import EditProductPage from "@/pages/admin/EditProductPage";
+import { CartProvider } from "@/context/CartContext";
+import { LanguageProvider, useLang } from "@/context/LanguageContext";
 
-const queryClient = new QueryClient();
-
-function Home() {
+function StorefrontLayout({ children }: { children: React.ReactNode }) {
+  const { isRTL } = useLang();
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-gray-900">Replit Agent is building...</h1>
-        <p className="mt-2 text-sm text-gray-600">Your app will appear here once it's ready.</p>
-      </div>
+    <div dir={isRTL ? "rtl" : "ltr"}>
+      <Navbar />
+      {children}
+      <Footer />
     </div>
   );
 }
 
-function Router() {
+function AppRoutes() {
   return (
     <Switch>
-      <Route path="/" component={Home} />
-      <Route component={NotFound} />
+      <Route path="/" component={() => <StorefrontLayout><HomePage /></StorefrontLayout>} />
+      <Route path="/shop" component={() => <StorefrontLayout><ShopPage /></StorefrontLayout>} />
+      <Route path="/product/:id" component={() => <StorefrontLayout><ProductPage /></StorefrontLayout>} />
+      <Route path="/cart" component={CartPage} />
+      <Route path="/checkout" component={() => <StorefrontLayout><CheckoutPage /></StorefrontLayout>} />
+      <Route path="/login" component={() => <StorefrontLayout><LoginPage /></StorefrontLayout>} />
+      <Route path="/admin/login" component={AdminLoginPage} />
+      <Route path="/admin/dashboard" component={AdminDashboardPage} />
+      <Route path="/admin/products/new" component={NewProductPage} />
+      <Route path="/admin/products/:id/edit" component={EditProductPage} />
     </Switch>
   );
 }
 
-function App() {
+export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
+    <LanguageProvider>
+      <CartProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
+          <AppRoutes />
         </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+      </CartProvider>
+    </LanguageProvider>
   );
 }
-
-export default App;

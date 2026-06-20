@@ -1,0 +1,1 @@
+- [Rym Shoes project](rym-shoes.md) — e-commerce shoe store ported from Next.js/CommonJS repo to React Vite + TypeScript Express + Drizzle ORM.
