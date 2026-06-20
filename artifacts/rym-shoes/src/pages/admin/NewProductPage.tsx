@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { adminFetch } from '@/lib/api';
+import { onAuthStateChanged } from 'firebase/auth';
+import { useEffect } from 'react';
+import { auth } from '@/lib/firebase';
+import { adminCreateProduct } from '@/lib/api';
 
 const ALL_SIZES = ['39', '40', '41', '42', '43', '44', '45', '46'];
 const ALL_COLORS = [
@@ -35,6 +38,13 @@ export default function NewProductPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, user => {
+      if (!user) navigate('/admin/login');
+    });
+    return () => unsub();
+  }, [navigate]);
+
   const toggleSize = (size: string) =>
     setSelectedSizes(prev => prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size]);
   const toggleColor = (id: string) =>
@@ -57,15 +67,11 @@ export default function NewProductPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const fd = new FormData();
-    Object.entries(form).forEach(([k, v]) => fd.append(k, v));
-    fd.append('sizes', JSON.stringify(selectedSizes));
-    fd.append('colors', JSON.stringify(selectedColors));
-    imageFiles.forEach(file => fd.append('images', file));
     try {
-      const res = await adminFetch('/products', { method: 'POST', body: fd });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to create');
+      await adminCreateProduct(
+        { ...form, sizes: selectedSizes, colors: selectedColors },
+        imageFiles,
+      );
       navigate('/admin/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -167,7 +173,7 @@ export default function NewProductPage() {
 
           <div className="flex gap-4 pt-4">
             <button type="submit" disabled={loading} className="btn-primary disabled:opacity-60">
-              {loading ? 'Creating...' : 'Create Product'}
+              {loading ? 'Uploading & Creating...' : 'Create Product'}
             </button>
             <Link href="/admin/dashboard" className="btn-outline inline-block">Cancel</Link>
           </div>

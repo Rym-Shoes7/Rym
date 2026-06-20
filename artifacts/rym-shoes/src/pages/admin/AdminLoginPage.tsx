@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 export default function AdminLoginPage() {
   const [, navigate] = useLocation();
-  const [form, setForm] = useState({ username: '', password: '' });
+  const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -12,17 +14,10 @@ export default function AdminLoginPage() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Invalid credentials'); return; }
-      localStorage.setItem('adminToken', data.token);
+      await signInWithEmailAndPassword(auth, form.email, form.password);
       navigate('/admin/dashboard');
     } catch {
-      setError('Connection error. Please try again.');
+      setError('البريد الإلكتروني أو كلمة السر غير صحيحة.');
     } finally {
       setLoading(false);
     }
@@ -37,11 +32,11 @@ export default function AdminLoginPage() {
         </div>
         <form onSubmit={handleSubmit} className="space-y-8">
           <div>
-            <label className="block text-[9px] tracking-[0.2em] uppercase text-warm-gray mb-2">Username</label>
+            <label className="block text-[9px] tracking-[0.2em] uppercase text-warm-gray mb-2">Email</label>
             <input
-              type="text" required autoComplete="username"
-              value={form.username} onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
-              className="admin-input" placeholder="admin"
+              type="email" required autoComplete="email"
+              value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+              className="admin-input" placeholder="admin@example.com"
             />
           </div>
           <div>

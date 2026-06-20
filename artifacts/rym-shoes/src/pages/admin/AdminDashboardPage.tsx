@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'wouter';
-import { adminFetch, getImageUrl, formatPrice, type Product } from '@/lib/api';
-import type { Order } from '@/lib/api';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import {
+  getProducts, getOrders, adminDeleteProduct, adminUpdateOrderStatus,
+  getImageUrl, formatPrice, type Product, type Order,
+} from '@/lib/api';
 
 export default function AdminDashboardPage() {
   const [, navigate] = useLocation();
@@ -9,40 +13,47 @@ export default function AdminDashboardPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [tab, setTab] = useState<'products' | 'orders'>('products');
   const [loading, setLoading] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
 
   const fetchData = useCallback(async () => {
-    const token = localStorage.getItem('adminToken');
-    if (!token) { navigate('/admin/login'); return; }
     setLoading(true);
     try {
-      const [pRes, oRes] = await Promise.all([
-        adminFetch('/products'),
-        adminFetch('/orders'),
-      ]);
-      if (pRes.status === 401 || pRes.status === 403) { localStorage.removeItem('adminToken'); navigate('/admin/login'); return; }
-      if (pRes.ok) setProducts(await pRes.json());
-      if (oRes.ok) setOrders(await oRes.json());
+      const [prods, ords] = await Promise.all([getProducts(), getOrders()]);
+      setProducts(prods);
+      setOrders(ords);
     } catch {}
     setLoading(false);
-  }, [navigate]);
+  }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
-
-  const deleteProduct = async (id: number) => {
-    if (!confirm('Delete this product?')) return;
-    const res = await adminFetch(`/products/${id}`, { method: 'DELETE' });
-    if (res.ok) setProducts(prev => prev.filter(p => p.id !== id));
-  };
-
-  const updateOrderStatus = async (id: number, status: string) => {
-    const res = await adminFetch(`/orders/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status }),
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, user => {
+      setAuthChecked(true);
+      if (!user) {
+        navigate('/admin/login');
+      } else {
+        fetchData();
+      }
     });
-    if (res.ok) setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
+    return () => unsubscribe();
+  }, [fetchData, navigate]);
+
+  const deleteProduct = async (id: string) => {
+    if (!confirm('Delete this product?')) return;
+    await adminDeleteProduct(id);
+    setProducts(prev => prev.filter(p => p.id !== id));
   };
 
-  const logout = () => { localStorage.removeItem('adminToken'); navigate('/admin/login'); };
+  const updateOrderStatus = async (id: string, status: string) => {
+    await adminUpdateOrderStatus(id, status);
+    setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
+  };
+
+  const logout = async () => {
+    await signOut(auth);
+    navigate('/admin/login');
+  };
+
+  if (!authChecked) return null;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -126,7 +137,7 @@ export default function AdminDashboardPage() {
                   <div key={order.id} className="bg-white border border-beige p-6">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
                       <div>
-                        <p className="font-semibold">Order #{order.id} — {order.first_name} {order.last_name}</p>
+                        <p className="font-semibold">{order.order_number ?? `#${order.id.substring(0, 8)}`} — {order.first_name} {order.last_name}</p>
                         <p className="text-sm text-warm-gray mt-1">{order.phone} · {order.wilaya}</p>
                         <p className="text-xs text-warm-gray mt-0.5">{order.address}, {order.commune}</p>
                       </div>

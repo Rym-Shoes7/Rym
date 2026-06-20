@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'wouter';
 import { useCart } from '@/context/CartContext';
-import { formatPrice } from '@/lib/api';
+import { formatPrice, placeOrder } from '@/lib/api';
 
 const WILAYAS = [
   'أدرار', 'الشلف', 'الأغواط', 'أم البواقي', 'باتنة', 'بجاية', 'بسكرة', 'بشار',
@@ -30,19 +30,27 @@ export default function CheckoutPage() {
     e.preventDefault();
     setLoading(true);
     setError('');
-    const orderItems = items.map(({ product, size, qty }) => ({ name: product.name, price: product.price, size, qty }));
+    const orderItems = items.map(({ product, size, qty }) => ({
+      name: product.name,
+      price: product.price,
+      size,
+      qty,
+    }));
     try {
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, items: orderItems, total }),
+      const result = await placeOrder({
+        first_name: form.firstName,
+        last_name: form.lastName,
+        phone: form.phone,
+        address: form.address,
+        wilaya: form.wilaya,
+        commune: form.commune,
+        items: orderItems,
+        total,
       });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error || 'حدث خطأ. حاول مجدداً.'); return; }
       clearCart();
-      setOrderNumber(data.orderNumber);
+      setOrderNumber(result.orderNumber);
     } catch {
-      setError('تعذر الاتصال بالخادم. تحقق من اتصالك وحاول مجدداً.');
+      setError('حدث خطأ. حاول مجدداً.');
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useLocation } from 'wouter';
-import { adminFetch, getImageUrl } from '@/lib/api';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { getProduct, adminUpdateProduct, getImageUrl } from '@/lib/api';
 
 const ALL_SIZES = ['39', '40', '41', '42', '43', '44', '45', '46'];
 const ALL_COLORS = [
@@ -39,11 +41,10 @@ export default function EditProductPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    if (!token) { navigate('/admin/login'); return; }
-    adminFetch(`/products/${id}`)
-      .then(r => r.json())
-      .then(data => {
+    const unsub = onAuthStateChanged(auth, async user => {
+      if (!user) { navigate('/admin/login'); return; }
+      try {
+        const data = await getProduct(id!);
         setForm({ name: data.name, price: data.price, description: data.description || '', category: data.category });
         setSelectedSizes(Array.isArray(data.sizes) ? data.sizes : []);
         setSelectedColors(Array.isArray(data.colors) ? data.colors : []);
@@ -51,9 +52,13 @@ export default function EditProductPage() {
           ? data.images
           : data.image_url ? [data.image_url] : [];
         setExistingImages(imgs);
-      })
-      .catch(() => setError('Failed to load product'))
-      .finally(() => setFetching(false));
+      } catch {
+        setError('Failed to load product');
+      } finally {
+        setFetching(false);
+      }
+    });
+    return () => unsub();
   }, [id, navigate]);
 
   const toggleSize = (size: string) =>
@@ -81,16 +86,13 @@ export default function EditProductPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const fd = new FormData();
-    Object.entries(form).forEach(([k, v]) => fd.append(k, v));
-    fd.append('sizes', JSON.stringify(selectedSizes));
-    fd.append('colors', JSON.stringify(selectedColors));
-    fd.append('existingImages', JSON.stringify(existingImages));
-    newImageFiles.forEach(file => fd.append('images', file));
     try {
-      const res = await adminFetch(`/products/${id}`, { method: 'PUT', body: fd });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to update');
+      await adminUpdateProduct(
+        id!,
+        { ...form, sizes: selectedSizes, colors: selectedColors },
+        newImageFiles,
+        existingImages,
+      );
       navigate('/admin/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
