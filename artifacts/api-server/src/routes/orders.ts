@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { getFirestore } from "../lib/firebase.js";
+import { sendTelegramMessage } from "../lib/telegram.js";
 import { authenticateToken } from "../middleware/adminAuth.js";
 
 const router = Router();
@@ -11,7 +12,7 @@ function generateOrderNumber() {
 router.post("/orders", async (req, res) => {
   const { firstName, lastName, phone, address, wilaya, commune, items, total } = req.body as {
     firstName: string; lastName: string; phone: string; address: string;
-    wilaya: string; commune: string; items: unknown; total: number;
+    wilaya: string; commune: string; items: Array<{ name: string; quantity: number; price: string }>; total: number;
   };
   if (!firstName || !phone || !address || !wilaya) {
     return res.status(400).json({ error: "Missing required fields" });
@@ -31,6 +32,26 @@ router.post("/orders", async (req, res) => {
       created_at: new Date().toISOString(),
     };
     const ref = await db.collection("orders").add(data);
+
+    const itemLines = Array.isArray(items)
+      ? items.map((i) => `  • ${i.name} × ${i.quantity} — ${i.price} دج`).join("\n")
+      : "";
+
+    const msg =
+      `🛍️ <b>طلب جديد!</b>\n` +
+      `━━━━━━━━━━━━━━━\n` +
+      `🔖 <b>رقم الطلب:</b> ${orderNumber}\n` +
+      `👤 <b>الاسم:</b> ${firstName} ${lastName || ""}\n` +
+      `📞 <b>الهاتف:</b> ${phone}\n` +
+      `📍 <b>الولاية:</b> ${wilaya}${commune ? ` / ${commune}` : ""}\n` +
+      `🏠 <b>العنوان:</b> ${address}\n` +
+      `━━━━━━━━━━━━━━━\n` +
+      `🛒 <b>المنتجات:</b>\n${itemLines}\n` +
+      `━━━━━━━━━━━━━━━\n` +
+      `💰 <b>المجموع:</b> ${total} دج`;
+
+    await sendTelegramMessage(msg);
+
     return res.status(201).json({ success: true, orderId: ref.id, orderNumber });
   } catch (err) {
     req.log.error(err, "create order error");
