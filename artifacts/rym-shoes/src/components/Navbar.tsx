@@ -15,6 +15,8 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const base = import.meta.env.BASE_URL ?? '/';
+
   return (
     <>
       <header
@@ -35,7 +37,7 @@ export default function Navbar() {
 
           <Link href="/" className="absolute left-1/2 -translate-x-1/2">
             <img
-              src="/logo.png"
+              src={`${base}logo.png`}
               alt="Rym SHOES"
               className="h-12 w-auto object-contain"
               style={{ filter: scrolled ? 'none' : 'brightness(0) invert(1) drop-shadow(0 1px 6px rgba(0,0,0,0.6))' }}
