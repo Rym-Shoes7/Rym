@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { Link } from 'wouter';
 import { useLang } from '@/context/LanguageContext';
 
+const base = import.meta.env.BASE_URL ?? '/';
+
 const slides = [
-  { src: '/hero1.jpg', alt: 'Luxury loafers on wood floor' },
-  { src: '/hero2.jpg', alt: 'Black loafers outdoor lifestyle' },
-  { src: '/hero3.jpg', alt: 'Black horsebit loafers closeup' },
+  { src: `${base}hero1.jpg`, alt: 'Luxury loafers on wood floor' },
+  { src: `${base}hero2.jpg`, alt: 'Black loafers outdoor lifestyle' },
+  { src: `${base}hero3.jpg`, alt: 'Black horsebit loafers closeup' },
 ];
 
 export default function HeroSlider() {
