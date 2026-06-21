@@ -30,7 +30,7 @@ jobs:
         run: pnpm --filter @workspace/rym-shoes run build
         env:
           PORT: "3000"
-          BASE_PATH: "/"
+          BASE_PATH: "/Rym/"
           NODE_ENV: production
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
           VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
